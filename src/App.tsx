@@ -1,40 +1,45 @@
-import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react'
-import '@aws-amplify/ui-react/styles.css'
-import { useEffect, useState } from "react";
-import type { Schema } from "../amplify/data/resource";
-import { generateClient } from "aws-amplify/data";
+import React, { useState, useEffect } from 'react';
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
+import '@aws-amplify/ui-react/styles.css';
 
-const client = generateClient<Schema>();
+interface Todo {
+  id: string;
+  content: string;
+  owner: string;
+}
 
 function App() {
-  const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [showClientIdPage, setShowClientIdPage] = useState(false);
   const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
-    if (user) {
-      const subscription = client.models.Todo.observeQuery({
-        filter: { owner: { eq: user.username } }
-      }).subscribe({
-        next: ({ items }) => setTodos(items),
-      });
-
-      return () => subscription.unsubscribe();
+    // Load todos from localStorage when the component mounts
+    const storedTodos = localStorage.getItem('todos');
+    if (storedTodos) {
+      setTodos(JSON.parse(storedTodos));
     }
-  }, [user]);
+  }, []);
 
-  async function createTodo() {
+  useEffect(() => {
+    // Save todos to localStorage whenever they change
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
+
+  function createTodo() {
     const content = window.prompt("Todo content");
     if (content && user) {
-      await client.models.Todo.create({
+      const newTodo: Todo = {
+        id: Date.now().toString(),
         content,
         owner: user.username
-      });
+      };
+      setTodos([...todos, newTodo]);
     }
   }
 
-  async function deleteTodo(id: string) {
-    await client.models.Todo.delete({ id });
+  function deleteTodo(id: string) {
+    setTodos(todos.filter(todo => todo.id !== id));
   }
 
   function ClientIdPage() {
@@ -61,8 +66,8 @@ function App() {
           Client secret:
         </div>
         <div style={{width: "361px", height: "0px", left: "37px", top: "394px", position: "absolute", border: "1px black solid"}} />
-        <img src="/assets/AdPal_logo_no_white.png" style={{width: "188px", height: "188px", left: "123px", top: "37px", position: "absolute"}} />
-        <img src="/assets/ezgif-5-675330dec9.gif" style={{width: "316px", height: "164px", left: "59px", top: "418px", position: "absolute"}} />
+        <img src="/assets/AdPal_logo_no_white.png" alt="AdPal logo" style={{width: "188px", height: "188px", left: "123px", top: "37px", position: "absolute"}} />
+        <img src="/assets/ezgif-5-675330dec9.gif" alt="Animated gif" style={{width: "316px", height: "164px", left: "59px", top: "418px", position: "absolute"}} />
         <div id="result"></div>
       </div>
     );
@@ -79,9 +84,12 @@ function App() {
               <h1>My todos</h1>
               <button onClick={createTodo}>+ new</button>
               <ul>
-                {todos.map((todo) => (
-                  <li key={todo.id} onClick={() => deleteTodo(todo.id)}>{todo.content}</li>
-                ))}
+                {todos
+                  .filter(todo => todo.owner === user?.username)
+                  .map((todo) => (
+                    <li key={todo.id} onClick={() => deleteTodo(todo.id)}>{todo.content}</li>
+                  ))
+                }
               </ul>
               <div>
                 🥳 App successfully hosted. Your personal todo list is ready!
