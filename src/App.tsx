@@ -9,11 +9,14 @@ interface Todo {
 }
 
 function App() {
+  console.log("App component rendered");
+
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState('');
   const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
+    console.log("useEffect for loading todos triggered");
     const storedTodos = localStorage.getItem('todos');
     if (storedTodos) {
       setTodos(JSON.parse(storedTodos));
