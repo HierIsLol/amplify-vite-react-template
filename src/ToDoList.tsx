@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useAuthenticator } from '@aws-amplify/ui-react';
 
 interface Todo {
   id: string;
@@ -8,13 +7,14 @@ interface Todo {
 }
 
 interface TodoListProps {
-  user: any;  // You might want to replace 'any' with a more specific type
+  user: {
+    username: string;
+  };
 }
 
 export function TodoList({ user }: TodoListProps) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState('');
-  const { user: authUser } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
     console.log("useEffect for loading todos triggered");
