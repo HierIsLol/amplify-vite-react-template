@@ -1,4 +1,4 @@
-import { Authenticator } from '@aws-amplify/ui-react'
+import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react'
 import '@aws-amplify/ui-react/styles.css'
 import { useEffect, useState } from "react";
 import type { Schema } from "../amplify/data/resource";
@@ -9,19 +9,32 @@ const client = generateClient<Schema>();
 function App() {
   const [todos, setTodos] = useState<Array<Schema["Todo"]["type"]>>([]);
   const [showClientIdPage, setShowClientIdPage] = useState(false);
+  const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
-    client.models.Todo.observeQuery().subscribe({
-      next: (data) => setTodos([...data.items]),
-    });
-  }, []);
+    if (user) {
+      const subscription = client.models.Todo.observeQuery({
+        filter: { owner: { eq: user.username } }
+      }).subscribe({
+        next: ({ items }) => setTodos(items),
+      });
 
-  function createTodo() {
-    client.models.Todo.create({ content: window.prompt("Todo content") });
+      return () => subscription.unsubscribe();
+    }
+  }, [user]);
+
+  async function createTodo() {
+    const content = window.prompt("Todo content");
+    if (content && user) {
+      await client.models.Todo.create({
+        content,
+        owner: user.username
+      });
+    }
   }
 
-  function deleteTodo(id: string) {
-    client.models.Todo.delete({ id });
+  async function deleteTodo(id: string) {
+    await client.models.Todo.delete({ id });
   }
 
   function ClientIdPage() {
@@ -71,11 +84,7 @@ function App() {
                 ))}
               </ul>
               <div>
-                🥳 App successfully hosted. Try creating a new todo.
-                <br />
-                <a href="https://docs.amplify.aws/react/start/quickstart/#make-frontend-updates">
-                  Review next step of this tutorial.
-                </a>
+                🥳 App successfully hosted. Your personal todo list is ready!
               </div>
               <button onClick={() => setShowClientIdPage(true)}>Show Client ID Page</button>
             </>
