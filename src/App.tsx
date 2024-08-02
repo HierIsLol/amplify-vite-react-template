@@ -10,11 +10,10 @@ interface Todo {
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [showClientIdPage, setShowClientIdPage] = useState(false);
+  const [newTodo, setNewTodo] = useState('');
   const { user } = useAuthenticator((context) => [context.user]);
 
   useEffect(() => {
-    // Load todos from localStorage when the component mounts
     const storedTodos = localStorage.getItem('todos');
     if (storedTodos) {
       setTodos(JSON.parse(storedTodos));
@@ -22,19 +21,19 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Save todos to localStorage whenever they change
     localStorage.setItem('todos', JSON.stringify(todos));
   }, [todos]);
 
-  function createTodo() {
-    const content = window.prompt("Todo content");
-    if (content && user) {
-      const newTodo: Todo = {
+  function createTodo(e: React.FormEvent) {
+    e.preventDefault();
+    if (newTodo.trim() && user) {
+      const newTodoItem: Todo = {
         id: Date.now().toString(),
-        content,
+        content: newTodo.trim(),
         owner: user.username
       };
-      setTodos([...todos, newTodo]);
+      setTodos([...todos, newTodoItem]);
+      setNewTodo('');
     }
   }
 
@@ -42,40 +41,92 @@ function App() {
     setTodos(todos.filter(todo => todo.id !== id));
   }
 
-  function ClientIdPage() {
-    return (
-      <div style={{width: "434px", height: "886px", position: "relative", background: "white", fontFamily: "Arial, sans-serif"}}>
-        {/* Rest of the ClientIdPage component remains unchanged */}
-      </div>
-    );
-  }
-
-  return (    
+  return (
     <Authenticator>
       {({ signOut }) => (
-        <main>
-          {showClientIdPage ? (
-            <ClientIdPage />
-          ) : (
-            <>
-              <h1>My todos</h1>
-              <button onClick={createTodo}>+ new</button>
-              <ul>
-                {todos
-                  .filter(todo => todo.owner === user?.username)
-                  .map((todo) => (
-                    <li key={todo.id} onClick={() => deleteTodo(todo.id)}>{todo.content}</li>
-                  ))
-                }
-              </ul>
-              <div>
-                🥳 App successfully hosted. Your personal todo list is ready!
-              </div>
-              <button onClick={() => setShowClientIdPage(true)}>Show Client ID Page</button>
-            </>
-          )}
-          <button onClick={signOut}>Sign out</button>
-        </main>
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(180deg, #9370DB 0%, #E6E6FA 100%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '2rem',
+          color: '#333'
+        }}>
+          <h1 style={{ color: 'white', marginBottom: '2rem' }}>My Todo List</h1>
+          <div style={{
+            background: 'white',
+            padding: '2rem',
+            borderRadius: '8px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            width: '100%',
+            maxWidth: '500px'
+          }}>
+            <form onSubmit={createTodo} style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                value={newTodo}
+                onChange={(e) => setNewTodo(e.target.value)}
+                placeholder="Add a new todo"
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  marginRight: '0.5rem',
+                  border: '1px solid #ccc',
+                  borderRadius: '4px'
+                }}
+              />
+              <button type="submit" style={{
+                background: '#9370DB',
+                color: 'white',
+                border: 'none',
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                marginTop: '0.5rem'
+              }}>
+                Add Todo
+              </button>
+            </form>
+            <ul style={{ listStyleType: 'none', padding: 0 }}>
+              {todos
+                .filter(todo => todo.owner === user?.username)
+                .map((todo) => (
+                  <li key={todo.id} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                    borderBottom: '1px solid #eee'
+                  }}>
+                    <span>{todo.content}</span>
+                    <button onClick={() => deleteTodo(todo.id)} style={{
+                      background: '#ff4d4d',
+                      color: 'white',
+                      border: 'none',
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}>
+                      Delete
+                    </button>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <button onClick={signOut} style={{
+            marginTop: '2rem',
+            background: '#333',
+            color: 'white',
+            border: 'none',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}>
+            Sign Out
+          </button>
+        </div>
       )}
     </Authenticator>
   );
